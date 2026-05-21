@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic-Tac-Toe</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: rgba(255,255,255,0.07);
+    --x-color: #60a5fa;
+    --o-color: #f472b6;
+    --win-glow-x: rgba(96,165,250,0.25);
+    --win-glow-o: rgba(244,114,182,0.25);
+    --text: #f1f5f9;
+    --muted: #64748b;
+    --accent: #6366f1;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .wrapper {
+    width: min(420px, 95vw);
+    padding: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header { text-align: center; margin-bottom: 1.8rem; }
+  .title {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--x-color), var(--o-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+  .subtitle {
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .scores {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.6rem;
+    margin-bottom: 1.4rem;
+  }
+  .score-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.75rem;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+  .score-card.active-x { border-color: rgba(96,165,250,0.5); }
+  .score-card.active-o { border-color: rgba(244,114,182,0.5); }
+  .score-label {
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.2rem;
+  }
+  .score-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .score-val.x { color: var(--x-color); }
+  .score-val.o { color: var(--o-color); }
+  .score-val.d { color: var(--muted); }
+  .score-mid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .score-mid span { font-size: 0.7rem; color: var(--muted); text-align: center; }
+
+  .status-wrap {
+    text-align: center;
+    margin-bottom: 1.2rem;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.82rem;
+    color: var(--text);
+    transition: all 0.2s;
+  }
+  .status-pill .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+  .status-pill.turn-x .dot { background: var(--x-color); }
+  .status-pill.turn-o .dot { background: var(--o-color); }
+  .status-pill.win-x { border-color: rgba(96,165,250,0.5); background: rgba(96,165,250,0.08); }
+  .status-pill.win-o { border-color: rgba(244,114,182,0.5); background: rgba(244,114,182,0.08); }
+  .status-pill.draw  { border-color: rgba(100,116,139,0.4); }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 1.2rem;
+    transform: translateZ(0);
+  }
+
+  .cell {
+    aspect-ratio: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 2.6rem;
+    font-weight: 800;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.15s, background-color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .cell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.06) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.15s;
+    border-radius: inherit;
+  }
+  .cell:not(.taken):hover::before { opacity: 1; }
+  .cell:not(.taken):hover { border-color: rgba(255,255,255,0.15); }
+  .cell:not(.taken):active { transform: scale(0.96); transition: transform 0.08s; }
+
+  .cell .mark {
+    opacity: 0;
+    transform: scale(0.4) rotate(-10deg);
+    transition: opacity 0.18s cubic-bezier(0.34,1.56,0.64,1), transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    display: block;
+  }
+  .cell.taken .mark { opacity: 1; transform: scale(1) rotate(0deg); }
+  .cell.x-cell .mark { color: var(--x-color); }
+  .cell.o-cell .mark { color: var(--o-color); }
+
+  .cell.win-cell { animation: winPulse 0.5s ease forwards; }
+  .cell.win-cell.x-cell { background: var(--win-glow-x); border-color: rgba(96,165,250,0.4); }
+  .cell.win-cell.o-cell { background: var(--win-glow-o); border-color: rgba(244,114,182,0.4); }
+
+  @keyframes winPulse {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.06); }
+    70%  { transform: scale(0.97); }
+    100% { transform: scale(1); }
+  }
+
+  .cell.taken { cursor: default; }
+
+  .actions { display: flex; gap: 0.6rem; }
+  .btn {
+    flex: 1;
+    padding: 0.65rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.08s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: transparent;
+    font-weight: 500;
+  }
+  .btn.primary:hover { background: #7577f3; }
+
+  .board-wrap { position: relative; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="title">Tic-Tac-Toe</div>
+    <div class="subtitle">दो खिलाड़ी &mdash; टर्न-बेस्ड</div>
+  </div>
+
+  <div class="scores">
+    <div class="score-card" id="card-x">
+      <div class="score-label">खिलाड़ी X</div>
+      <div class="score-val x" id="score-x">0</div>
+    </div>
+    <div class="score-mid">
+      <span>ड्रॉ<br><span class="score-val d" id="score-d" style="font-size:1.1rem">0</span></span>
+    </div>
+    <div class="score-card" id="card-o">
+      <div class="score-label">खिलाड़ी O</div>
+      <div class="score-val o" id="score-o">0</div>
+    </div>
+  </div>
+
+  <div class="status-wrap">
+    <div class="status-pill turn-x" id="status-pill">
+      <span class="dot"></span>
+      <span id="status-text">X की बारी है</span>
+    </div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board">
+      <div class="cell" data-i="0"><span class="mark"></span></div>
+      <div class="cell" data-i="1"><span class="mark"></span></div>
+      <div class="cell" data-i="2"><span class="mark"></span></div>
+      <div class="cell" data-i="3"><span class="mark"></span></div>
+      <div class="cell" data-i="4"><span class="mark"></span></div>
+      <div class="cell" data-i="5"><span class="mark"></span></div>
+      <div class="cell" data-i="6"><span class="mark"></span></div>
+      <div class="cell" data-i="7"><span class="mark"></span></div>
+      <div class="cell" data-i="8"><span class="mark"></span></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" onclick="resetScores()">स्कोर रीसेट</button>
+    <button class="btn primary" onclick="newGame()">नया खेल ▶</button>
+  </div>
+</div>
+
+<script>
+  const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  let board = Array(9).fill(null);
+  let current = 'X';
+  let over = false;
+  let scores = {X:0, O:0, D:0};
+
+  const cells    = Array.from(document.querySelectorAll('.cell'));
+  const pill     = document.getElementById('status-pill');
+  const pillText = document.getElementById('status-text');
+  const cardX    = document.getElementById('card-x');
+  const cardO    = document.getElementById('card-o');
+  const sX       = document.getElementById('score-x');
+  const sO       = document.getElementById('score-o');
+  const sD       = document.getElementById('score-d');
+
+  document.getElementById('board').addEventListener('click', e => {
+    const cell = e.target.closest('.cell');
+    if (!cell || over || cell.classList.contains('taken')) return;
+    const i = +cell.dataset.i;
+    play(i, cell);
+  });
+
+  function play(i, cell) {
+    board[i] = current;
+    cell.classList.add('taken', current.toLowerCase() + '-cell');
+    cell.querySelector('.mark').textContent = current;
+
+    const result = checkWin();
+    if (result) {
+      over = true;
+      if (result.winner === 'D') {
+        setStatus('draw', '🤝 ड्रॉ! दोनों बराबर');
+        scores.D++; sD.textContent = scores.D;
+      } else {
+        setStatus('win-' + result.winner.toLowerCase(), result.winner + ' जीत गया! 🎉');
+        scores[result.winner]++;
+        (result.winner === 'X' ? sX : sO).textContent = scores[result.winner];
+        result.combo.forEach(idx => cells[idx].classList.add('win-cell'));
+      }
+    } else {
+      current = current === 'X' ? 'O' : 'X';
+      setStatus('turn-' + current.toLowerCase(), current + ' की बारी है');
+    }
+  }
+
+  function checkWin() {
+    for (const [a,b,c] of WINS) {
+      if (board[a] && board[a] === board[b] && board[b] === board[c])
+        return { winner: board[a], combo: [a,b,c] };
+    }
+    if (board.every(v => v)) return { winner: 'D' };
+    return null;
+  }
+
+  function setStatus(cls, text) {
+    pill.className = 'status-pill ' + cls;
+    pillText.textContent = text;
+    cardX.className = 'score-card' + (cls === 'turn-x' || cls === 'win-x' ? ' active-x' : '');
+    cardO.className = 'score-card' + (cls === 'turn-o' || cls === 'win-o' ? ' active-o' : '');
+  }
+
+  function newGame() {
+    board = Array(9).fill(null);
+    current = 'X'; over = false;
+    cells.forEach(c => { c.className = 'cell'; c.querySelector('.mark').textContent = ''; });
+    setStatus('turn-x', 'X की बारी है');
+  }
+
+  function resetScores() {
+    scores = {X:0, O:0, D:0};
+    sX.textContent = sO.textContent = sD.textContent = '0';
+    newGame();
+  }
+
+  cardX.classList.add('active-x');
+</script>
+</body>
+</html>
